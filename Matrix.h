@@ -1,17 +1,32 @@
 #pragma once
 #include <vector>
+#include <fstream>
 
 using namespace std;
-typedef vector < vector< float > > MatrixType;
-using namespace std;
-class Matrix
+
+class MyException : public exception
 {
 public:
-	Matrix(MatrixType &mat);
+	MyException(const char * exc_)
+		:exc(exc_)
+	{}
+	virtual const char* what() const throw()
+	{
+		return exc.c_str();
+	}
+private:
+	string exc;
+};
+
+class Matrix
+{
+typedef vector < vector< float > > MatrixType;
+public:
+	Matrix(){}
 	Matrix operator*(Matrix const &mat) const;
-	void print() const;
+	friend ifstream& operator>>(ifstream &in, Matrix &mat);
+	friend ofstream& operator<<(ofstream &out, Matrix &mat);
 
 private:
-	Matrix();
 	MatrixType Mat;
 };

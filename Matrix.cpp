@@ -2,31 +2,24 @@
 #include <iostream>
 #include <fstream>
 #include <omp.h>
-#include "time.h"
+#include <sstream>
 
-Matrix::Matrix(MatrixType & mat)
-	:Mat(mat)
-{
-}
 Matrix Matrix::operator*(Matrix const &mat) const
 {
-	time_t start;
-	time_t end;
-	MatrixType MatRes(Mat.size());
+	Matrix MatRes;
+	MatRes.Mat.resize(Mat.size());
 	if (Mat[0].size() != mat.Mat.size())
 	{
-		cout << "Sizes doesn't match" << endl;
-		return MatRes;
+		throw MyException("Sizes doesn't match");
 	}
 	int ij, i, j;
 	for ( int i = 0; i < mat.Mat[0].size(); i++ )
 	{
-		MatRes[i].resize(mat.Mat[0].size());
+		MatRes.Mat[i].resize(mat.Mat[0].size());
 	}
-	time(&start);
 	#pragma omp parallel
 	{
-		#pragma omp for private (ij , i, j)
+		#pragma omp for private (ij , i, j) schedule(dynamic, 1)
 		for (ij = 0; ij < Mat.size() * mat.Mat[0].size(); ij++ )
 		{
 			i = ij / Mat.size();
@@ -36,26 +29,53 @@ Matrix Matrix::operator*(Matrix const &mat) const
 			{
 				sum += Mat[i][k] * mat.Mat[k][j];
 			}
-			MatRes[i][j] = sum;
+			MatRes.Mat[i][j] = sum;
 			sum = 0;
 		}	
 	}
-	time(&end);
-	cout << difftime(end, start) << endl;
 	return MatRes;
 }
-void Matrix::print() const
+
+ifstream& operator>>(ifstream &in, Matrix & mat)
 {
-	ofstream f("res.txt");
-	if (f.is_open())
-	{
-		for (size_t i = 0; i < Mat.size(); ++i)
+	std::string buf;
+		float a;
+		vector<float> vec;
+		int i = 0;
+		while (getline(in, buf))
 		{
-			for (size_t j = 0; j < Mat[i].size(); ++j)
+			vec.clear();
+			stringstream ss(buf);
+			while (ss >> a)
 			{
-				f << Mat[i][j] << " ";
+				if (ss.good() || ss.eof())
+				{
+					vec.push_back(a);
+				} 
+				else
+				{
+					throw MyException("incorrect data");
+				}
 			}
-			f << endl;
+			if ( i > 0 && mat.Mat[i-1].size() != vec.size())
+			{
+				throw MyException("incorrect data");
+			}
+			i++;
+			mat.Mat.push_back(vec);
 		}
-	}
+		return in;
+}
+
+ofstream& operator<<(ofstream &out, Matrix & mat)
+{
+	for (size_t i = 0; i < mat.Mat.size(); ++i)
+		{
+			for (size_t j = 0; j < mat.Mat[i].size(); ++j)
+			{
+				out << mat.Mat[i][j] << " ";
+			}
+			out << endl;
+		}
+	return out;
 }

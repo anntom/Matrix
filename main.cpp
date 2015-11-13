@@ -2,56 +2,36 @@
 #include <vector>
 #include <iostream>
 #include <string>
-#include <sstream>
 #include "Matrix.h"
+#include "time.h"
 
 using namespace std;
 
-bool read(MatrixType &mat, const char * path)
+bool read(const char * path, Matrix &mat)
 {
 	ifstream f(path);
 	if (f.is_open())
 	{
-		std::string buf;
-		float a;
-		vector<float> vec;
-		int i = 0;
-		while (getline(f, buf))
-		{
-			vec.clear();
-			stringstream ss(buf);
-			while (ss >> a)
-			{
-				if (ss.good() || ss.eof())
-				{
-					vec.push_back(a);
-				} 
-				else
-				{
-					cout << "incorrect data in file: " << path << endl;
-					return false;
-				}
-			}
-			if ( i > 0 && mat[i-1].size() != vec.size())
-			{
-				cout << "incorrect data in file: " << path << endl;
-				return false;
-			}
-			i++;
-			mat.push_back(vec);
+		try{
+			f>>mat;
+		}
+		catch(const char* str){
+			cout << str << endl;
+			return false;
 		}
 		return true;
 	}
 	else
 	{
-		cout << "Can't open file: " << path << endl;
+		throw MyException("Can't open file");
 		return false;
 	}
 }
 
 int main(int argc, char * argv[])
 {
-	if (argc != 3)
+	Matrix mat1, mat2;
+	if (argc != 4)
 	{
 		cout << "Enter path to file" << endl;
 		return -1;
@@ -60,11 +40,33 @@ int main(int argc, char * argv[])
 	{
 		string path1 = argv[1];
 		string path2 = argv[2];
-		MatrixType mat1, mat2;
-		if (read(mat1, path1.c_str()) && read(mat2, path2.c_str()))
+		string path_out = argv[3];
+		bool read1, read2;
+		try{
+			read1 = read(path1.c_str(), mat1);
+			read2 = read(path2.c_str(), mat2);
+		}
+		catch(const char* str){
+			cout << str << endl; 
+		}
+		if (read1 && read2)
 		{
-			Matrix res = Matrix(mat1) * Matrix(mat2);
-			res.print();
+			time_t start;
+			time_t end;
+			start = clock();
+			Matrix res = mat1 * mat2;
+			end = clock();
+			cout << difftime(end, start) << endl;
+			ofstream f(path_out);
+			if (f.is_open())
+			{
+				f<<res;
+			}
+			else
+			{
+				cout << "Can't open file" << endl;
+				return -1;
+			}
 		} 
 		else
 		{
